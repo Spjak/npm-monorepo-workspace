@@ -1,0 +1,27 @@
+{
+  "name": "npm-monorepo-workspace",
+  "version": "1.0.0",
+  "description": "Example repo for TypeScript mono-repo using npm workspaces",
+  "main": "index.js",
+  "scripts": {
+    "build-all": "npm run build --workspaces --if-present",
+    "install-all": "npm ci --workspaces --if-present",
+    "lambda-build-all": "npm run lambda-build --workspaces --if-present"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Spjak/npm-monorepo-workspace.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Spjak/npm-monorepo-workspace/issues"
+  },
+  "homepage": "https://github.com/Spjak/npm-monorepo-workspace#readme",
+  "workspaces": [
+    "libs\\id-helper",
+    "apps\\user-app",
+    "apps\\shop-app"
+  ]
+}
