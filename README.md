@@ -29,10 +29,12 @@ Add tsconfig.json files to all projects, along the lines of
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,      
     "strict": true,          
-    "skipLibCheck": true     
+    "skipLibCheck": true,
+    "composite": true  
   }
 }
 ```
+where *"composite": true* is required for libraries.
 
 Create scritps for building in the root `package.json` 
 ```
@@ -50,36 +52,9 @@ and each of the child `package.json` files
 }
 ```
 
-Finally create a Dockerfile in the root project.
-Ensure that the folder names are correct.
-
-```
-FROM public.ecr.aws/lambda/nodejs:16 as builder
-ARG APP_NAME
-
-WORKDIR /usr/app
-
-COPY package.json package-lock.json tsconfig.json ./
-
-COPY libs shared
-COPY apps/${APP_NAME} apps/${APP_NAME}
-
-RUN npm run install-all
-RUN npm run lambda-build-all
-
-RUN cp -r apps/${APP_NAME}/dist /usr/build
-
-FROM public.ecr.aws/lambda/nodejs:16
-
-WORKDIR ${LAMBDA_TASK_ROOT}
-
-COPY --from=builder /usr/build ./
-
-CMD ["index.handler"]
-```
-
 ## Code
-Write, test and debug the applications and libraries in their individual folders
+Write, test and debug the applications and libraries in their individual folders.
+
 Npm packages can be installed from the within the folders with normal npm install commands, or alternatively from the root folder with 
 ```
 npm install uuid -w id-helper
@@ -103,4 +78,45 @@ and imported with
 
 ```
 import { IdHelper } from 'id-helper'
+```
+
+## Publish
+Create a Dockerfile in the root project.
+Ensure that the folder names match the actual folder structure.
+
+```
+FROM public.ecr.aws/lambda/nodejs:16 as builder
+ARG APP_NAME
+
+WORKDIR /usr/app
+
+COPY package.json package-lock.json tsconfig.json ./
+
+COPY libs libs
+COPY apps/${APP_NAME} apps/${APP_NAME}
+
+RUN npm run install-all
+RUN npm run lambda-build-all
+
+RUN cp -r apps/${APP_NAME}/dist /usr/build
+
+FROM node:16-alpine
+
+WORKDIR /usr/app
+
+COPY --from=builder /usr/build ./
+
+CMD ["node", "index.js"]
+```
+Use the Dockerfile to build each application from the root directory, by providing the application name as a build argument
+
+```
+docker build --build-arg APP_NAME=user-app -t user-app:latest .
+```
+
+Add a .dockerignore file to avoid copying unnecessary files into the build image.
+
+```
+**/node_modules
+**/build
 ```
