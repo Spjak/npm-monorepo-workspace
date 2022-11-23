@@ -36,22 +36,6 @@ Add tsconfig.json files to all projects, along the lines of
 ```
 where *"composite": true* is required for libraries.
 
-Create scritps for building in the root `package.json` 
-```
-"scripts": {
-    "build-all": "npm run build --workspaces --if-present",
-    "install-all": "npm ci --workspaces --if-present",
-    "lambda-build-all": "npm run lambda-build --workspaces --if-present"
-  },
-```
-and each of the child `package.json` files
-```
-"scripts": {
-    "lambda-build": "esbuild index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
-    "build": "tsc"
-}
-```
-
 ## Code
 Write, test and debug the applications and libraries in their individual folders.
 
@@ -86,10 +70,27 @@ This is mainly useful when working locally and is not required when publishing.
 
 
 ## Publish
+Workspaces makes it simple to execute scripts across every workspace in the project.
+Create scritps for building in the root `package.json` 
+```
+"scripts": {
+    "build-all": "npm run build --workspaces --if-present",
+    "install-all": "npm ci --workspaces --if-present",
+    "lambda-build-all": "npm run lambda-build --workspaces --if-present"
+  },
+```
+and add the corresponding scripts in each of the child `package.json` files
+```
+"scripts": {
+    "lambda-build": "esbuild index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
+    "build": "tsc"
+}
+```
 
-The workspace root scripts makes it easy to install npm packages for all modules in the project.
 Instead of running `npm install` in each and every folder, the `npm run install-all` script aggregates this.
 Similarly, `npm run build-all` will build every module.
+
+Importantly, with the `--if-present` argument, if one or more workspaces are missing scripts, or missing all together, the script will simply ignore them. This means it is possible to only copy relevant workspaces into the build process and still use the same commands to build those.
 
 Create a Dockerfile in the root project.
 Ensure that the folder names match the actual folder structure.
@@ -118,7 +119,7 @@ COPY --from=builder /usr/build ./
 
 CMD ["node", "index.js"]
 ```
-Use the Dockerfile to build each application from the root directory, by providing the application name as a build argument
+Use the Dockerfile to build a specific application from the root directory, by providing the application name as a build argument
 
 ```
 docker build --build-arg APP_NAME=user-app -t user-app:latest .
@@ -130,3 +131,6 @@ Add a .dockerignore file to avoid copying unnecessary files into the build image
 **/node_modules
 **/build
 ```
+
+Since only the one application is copied into the `builder` image, npm packages used by other applications will not be installed.
+This can be verfied by adding `RUN echo $(ls ./node_modules)` into the Dockerfile after the install commands and building the `shop-app`. This will not include the `pretty-format` package, even though it is referenced in the root `package-lock.json` file, because only `user-app` uses the package.
