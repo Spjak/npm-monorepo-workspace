@@ -4,7 +4,7 @@ Example repo for TypeScript mono-repo using npm workspaces
 ## Setup
 Initialize a new project in an empty folder with `npm init`.
 
-Initialize applications and libraries with
+Initialize new or existing applications and libraries with
 
 ```
 npm init -w ./apps/user-app
@@ -55,18 +55,24 @@ and each of the child `package.json` files
 ## Code
 Write, test and debug the applications and libraries in their individual folders.
 
-Npm packages can be installed from the within the folders with normal npm install commands, or alternatively from the root folder with 
+Npm packages can be installed from the within the folders with normal npm install commands, or alternatively from the root folder with workspace references 
 ```
 npm install uuid -w id-helper
 ```
 
-To reference a library from an app, use the direct file reference such as 
+Local modules configured as workspaces can be refereced as packages, since the workspace will generate symbolic links in the root node_modules folder.
+This means instead of
 
 ```
 import { IdHelper } from '../../libs/id-helper'
 ```
+it is possible to simply use
 
-Alternatively, the library can be referenced in the tsconfig.json file
+```
+import { IdHelper } from 'id-helper'
+```
+
+To ensure the module is (re)-built whenever the dependent applications are built, a reference is required in the tsconfig.json file of the application.
 ```
 "references": [
     {
@@ -74,13 +80,17 @@ Alternatively, the library can be referenced in the tsconfig.json file
     }
 ]
 ```
-and imported with 
+This will allow `tsc -b` to build both the application and the module it depends on.
 
-```
-import { IdHelper } from 'id-helper'
-```
+This is mainly useful when working locally and is not required when publishing.
+
 
 ## Publish
+
+The workspace root scripts makes it easy to install npm packages for all modules in the project.
+Instead of running `npm install` in each and every folder, the `npm run install-all` script aggregates this.
+Similarly, `npm run build-all` will build every module.
+
 Create a Dockerfile in the root project.
 Ensure that the folder names match the actual folder structure.
 
